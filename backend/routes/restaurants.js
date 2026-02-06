@@ -80,7 +80,12 @@ router.get('/:id/menu', async (req, res, next) => {
   try {
     const { category, isAvailable } = req.query;
 
-    const query = { restaurantId: req.params.id };
+    const query = { 
+      $or: [
+        { restaurantId: req.params.id },
+        { restaurant_id: req.params.id }
+      ]
+    };
 
     if (category) {
       query.category = category;

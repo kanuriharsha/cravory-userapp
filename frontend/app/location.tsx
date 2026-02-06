@@ -58,16 +58,7 @@ export default function LocationScreen() {
 
       setDeliveryAddress(formattedAddress);
 
-      // Check if user is admin
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user.role === 'admin') {
-          router.replace('/admin');
-          return;
-        }
-      }
-
+      // Continue to main tabs
       router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Location error:', error);
@@ -131,16 +122,7 @@ export default function LocationScreen() {
           onPress={async () => {
             setDeliveryAddress('MG Road, Bangalore, Karnataka 560001');
             
-            // Check if user is admin
-            const userData = await AsyncStorage.getItem('userData');
-            if (userData) {
-              const user = JSON.parse(userData);
-              if (user.role === 'admin') {
-                router.replace('/admin');
-                return;
-              }
-            }
-            
+            // Continue to main tabs
             router.replace('/(tabs)');
           }}
         >

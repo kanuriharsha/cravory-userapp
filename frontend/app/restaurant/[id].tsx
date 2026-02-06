@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { mockRestaurants, mockMenuItems } from '../../data/mockData';
+import { restaurantService } from '../../services/api';
 import { useOrderStore } from '../../store/orderStore';
 import ProgressBar from '../../components/ProgressBar';
 
@@ -13,9 +14,45 @@ export default function RestaurantScreen() {
   const addToCart = useOrderStore(state => state.addToCart);
   const cart = useOrderStore(state => state.cart);
   const totalItems = useOrderStore(state => state.getTotalItems());
-  
-  const restaurant = mockRestaurants.find(r => r.id === id);
-  const menuItems = mockMenuItems[id as string] || [];
+
+  const [restaurant, setRestaurant] = useState<any | null>(null);
+  const [menuItems, setMenuItems] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        if (!id) return;
+        const respR: any = await restaurantService.getRestaurantById(id as string);
+        const rData = respR?.data || respR;
+        const respM: any = await restaurantService.getRestaurantMenu(id as string);
+        const mData = respM?.data || respM;
+        if (mounted) {
+          setRestaurant(rData || (mockRestaurants.find(r => r.id === id) ?? null));
+          setMenuItems(Array.isArray(mData) ? mData : (mData?.data || mockMenuItems[id as string] || []));
+        }
+      } catch (err) {
+        console.warn('Failed to load restaurant/menu from API, falling back to mock', err);
+        if (mounted) {
+          setRestaurant(mockRestaurants.find(r => r.id === id) || null);
+          setMenuItems(mockMenuItems[id as string] || []);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   if (!restaurant) {
     return (
@@ -26,8 +63,9 @@ export default function RestaurantScreen() {
   }
 
   const handleAddToCart = (item: any) => {
+    const itemId = item.id || item._id; // Handle both id and _id fields
     addToCart({
-      id: item.id,
+      id: itemId,
       name: item.name,
       price: item.price,
       quantity: 1,
@@ -62,22 +100,22 @@ export default function RestaurantScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Restaurant Info */}
-        <Image source={restaurant.image} style={styles.restaurantImage} />
+        <Image source={typeof restaurant.image === 'string' ? { uri: restaurant.image } : restaurant.image} style={styles.restaurantImage} />
         <View style={styles.infoContainer}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
           <Text style={styles.cuisine}>{restaurant.cuisine}</Text>
           <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
+            <View key="rating" style={styles.metaItem}>
               <Ionicons name="star" size={16} color="#FFC107" />
               <Text style={styles.metaText}>{restaurant.rating}</Text>
             </View>
-            <Text style={styles.metaDivider}>•</Text>
-            <View style={styles.metaItem}>
+            <Text key="divider1" style={styles.metaDivider}>•</Text>
+            <View key="delivery" style={styles.metaItem}>
               <Ionicons name="time" size={16} color="#666" />
               <Text style={styles.metaText}>{restaurant.deliveryTime}</Text>
             </View>
-            <Text style={styles.metaDivider}>•</Text>
-            <View style={styles.metaItem}>
+            <Text key="divider2" style={styles.metaDivider}>•</Text>
+            <View key="distance" style={styles.metaItem}>
               <Ionicons name="navigate" size={16} color="#666" />
               <Text style={styles.metaText}>{restaurant.distance}</Text>
             </View>
@@ -93,10 +131,11 @@ export default function RestaurantScreen() {
         {/* Menu */}
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>Menu</Text>
-          {menuItems.map(item => {
-            const quantity = getItemQuantity(item.id);
+          {menuItems.map((item, index) => {
+            const itemId = item.id || item._id; // Handle both id and _id fields
+            const quantity = getItemQuantity(itemId);
             return (
-              <View key={item.id} style={styles.menuItem}>
+              <View key={itemId || `menu-item-${index}`} style={styles.menuItem}>
                 <View style={styles.menuItemInfo}>
                   <View style={styles.vegIndicator}>
                     <View style={[styles.vegDot, !item.isVeg && styles.nonVegDot]} />
@@ -110,14 +149,21 @@ export default function RestaurantScreen() {
                   </View>
                 </View>
                 <View>
-                  <Image source={item.image} style={styles.itemImage} />
+                  <Image 
+                    source={item.image && item.image !== "" ? 
+                      (typeof item.image === 'string' ? { uri: item.image } : item.image) : 
+                      require('../../assets/images/food-naan.jpg')
+                    } 
+                    style={styles.itemImage} 
+                    defaultSource={require('../../assets/images/food-naan.jpg')}
+                  />
                   {quantity > 0 ? (
                     <View style={styles.quantityContainer}>
                       <TouchableOpacity 
                         style={styles.quantityButton}
                         onPress={() => {
                           const updateQuantity = useOrderStore.getState().updateQuantity;
-                          updateQuantity(item.id, quantity - 1);
+                          updateQuantity(itemId, quantity - 1);
                         }}
                       >
                         <Ionicons name="remove" size={16} color="#FF6B35" />

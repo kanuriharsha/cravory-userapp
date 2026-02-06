@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -56,12 +56,8 @@ export default function OTPScreen() {
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       const response = await authService.verifyOTP(formattedPhone, otp);
       
-      // Check if user is admin
-      if (response.user?.role === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.replace('/location');
-      }
+      // Route to location (admin routes removed)
+      router.replace('/location');
     } catch (error: any) {
       // Mock mode: ignore errors and proceed anyway
       router.replace('/location');

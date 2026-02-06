@@ -27,15 +27,7 @@ const seedData = async () => {
     await Category.deleteMany({});
     await Offer.deleteMany({});
 
-    // Create admin user
-    console.log('👤 Creating admin user...');
-    const admin = await User.create({
-      name: 'Admin User',
-      email: 'admin@cravory.com',
-      phone: '+919999999999',
-      password: 'admin123',
-      role: 'admin'
-    });
+    // (admin user creation removed)
 
     // Create categories
     console.log('📂 Creating categories...');
@@ -323,7 +315,6 @@ const seedData = async () => {
 
     console.log('✅ Database seeded successfully!');
     console.log(`📊 Created:`);
-    console.log(`   - 1 admin user`);
     console.log(`   - ${categories.length} categories`);
     console.log(`   - ${offers.length} offers`);
     console.log(`   - ${restaurants.length} restaurants`);

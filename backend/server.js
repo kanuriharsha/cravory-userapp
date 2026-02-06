@@ -54,7 +54,6 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/cart', require('./routes/cart'));
-app.use('/api/admin', require('./routes/admin'));
 
 // Root route
 app.get('/', (req, res) => {
@@ -67,8 +66,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       restaurants: '/api/restaurants',
       orders: '/api/orders',
-      cart: '/api/cart',
-      admin: '/api/admin'
+      cart: '/api/cart'
     }
   });
 });
@@ -86,7 +84,7 @@ app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
 

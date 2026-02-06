@@ -71,12 +71,20 @@ export default function CartScreen() {
         <View style={styles.itemsContainer}>
           {cart.map(item => (
             <View key={item.id} style={styles.cartItem}>
-              <Image source={item.image} style={styles.itemImage} />
+              <Image 
+                source={item.image && item.image !== "" ? 
+                  (typeof item.image === 'string' ? { uri: item.image } : item.image) : 
+                  require('../assets/images/food-naan.jpg')
+                } 
+                style={styles.itemImage} 
+                defaultSource={require('../assets/images/food-naan.jpg')}
+              />
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemPrice}>₹{item.price}</Text>
                 <View style={styles.quantityContainer}>
                   <TouchableOpacity 
+                    key={`remove-${item.id}`}
                     style={styles.quantityButton}
                     onPress={() => updateQuantity(item.id, item.quantity - 1)}
                   >
@@ -84,6 +92,7 @@ export default function CartScreen() {
                   </TouchableOpacity>
                   <Text style={styles.quantityText}>{item.quantity}</Text>
                   <TouchableOpacity 
+                    key={`add-${item.id}`}
                     style={styles.quantityButton}
                     onPress={() => updateQuantity(item.id, item.quantity + 1)}
                   >
@@ -99,23 +108,23 @@ export default function CartScreen() {
         {/* Bill Details */}
         <View style={styles.billContainer}>
           <Text style={styles.billTitle}>Bill Details</Text>
-          <View style={styles.billRow}>
+          <View key="itemTotal" style={styles.billRow}>
             <Text style={styles.billLabel}>Item Total</Text>
             <Text style={styles.billValue}>₹{getTotalAmount()}</Text>
           </View>
-          <View style={styles.billRow}>
+          <View key="deliveryFee" style={styles.billRow}>
             <Text style={styles.billLabel}>Delivery Fee</Text>
             <Text style={styles.billValue}>₹{deliveryFee}</Text>
           </View>
-          <View style={styles.billRow}>
+          <View key="platformFee" style={styles.billRow}>
             <Text style={styles.billLabel}>Platform Fee</Text>
             <Text style={styles.billValue}>₹{platformFee}</Text>
           </View>
-          <View style={styles.billRow}>
+          <View key="gst" style={styles.billRow}>
             <Text style={styles.billLabel}>GST (5%)</Text>
             <Text style={styles.billValue}>₹{gst}</Text>
           </View>
-          <View style={[styles.billRow, styles.totalRow]}>
+          <View key="total" style={[styles.billRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>To Pay</Text>
             <Text style={styles.totalValue}>₹{totalAmount}</Text>
           </View>

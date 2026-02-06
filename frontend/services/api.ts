@@ -32,41 +32,41 @@ interface ProfileResponse {
   };
 }
 
-// Backend API URL - automatically derives host IP in development when using Expo
-const deriveDevApiUrl = () => {
-  // Try to derive from Expo debugger host first
-  try {
-    const debuggerHost = (Constants.manifest && Constants.manifest.debuggerHost) || (Constants.manifest2 && Constants.manifest2.debuggerHost);
-    if (debuggerHost) {
-      const host = debuggerHost.split(':')[0];
-      console.log('[API] Using Expo debugger host:', host);
-      return `http://${host}:5000/api`;
-    }
-  } catch (e) {
-    console.log('[API] Could not derive from debugger host:', e);
-  }
-  
-  // Fallback to hardcoded local IP (update this if your IP changes)
-  const LOCAL_DEV_IP = '10.123.56.226'; // Your current local network IP
-  console.log('[API] Using hardcoded local IP:', LOCAL_DEV_IP);
-  return `http://${LOCAL_DEV_IP}:5000/api`;
-};
-
-// Get production API URL from environment or use default
-const getProductionApiUrl = () => {
-  // Check for Expo environment variable (set in app.json or .env)
+// Backend API URL - prioritizes environment variables for all environments
+const getApiUrl = () => {
+  // First, check for Expo environment variable (works in both dev and production)
   const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envApiUrl) {
-    console.log('[API] Using production URL from env:', envApiUrl);
+    console.log('[API] Using URL from environment variable:', envApiUrl);
     return envApiUrl;
   }
-  // Default production URL - UPDATE THIS before deploying
-  console.warn('[API] Using default production URL - update EXPO_PUBLIC_API_URL!');
-  return 'https://your-backend-url.com/api';
+
+  // Development fallback: try to derive from Expo debugger host
+  if (__DEV__) {
+    try {
+      const debuggerHost = (Constants.manifest && Constants.manifest.debuggerHost) || (Constants.manifest2 && Constants.manifest2.debuggerHost);
+      if (debuggerHost) {
+        const host = debuggerHost.split(':')[0];
+        console.log('[API] Using Expo debugger host:', host);
+        return `http://${host}:5000`;
+      }
+    } catch (e) {
+      console.log('[API] Could not derive from debugger host:', e);
+    }
+    
+    // Last resort for development
+    console.log('[API] Platform:', Platform.OS);
+    console.warn('[API] Falling back to localhost - consider setting EXPO_PUBLIC_API_URL');
+    return 'http://localhost:5000';
+  }
+
+  // Production fallback 
+  console.error('[API] No API_URL configured for production! Set EXPO_PUBLIC_API_URL environment variable');
+  return 'https://your-backend-url.com';
 };
 
-// Use derived URL in development, otherwise use production URL
-export const API_URL = __DEV__ ? deriveDevApiUrl() : getProductionApiUrl();
+// Get API URL using environment-first approach
+export const API_URL = getApiUrl();
 
 console.log('[API] Configured API URL:', API_URL);
 
@@ -113,12 +113,12 @@ api.interceptors.response.use(
 export const authService = {
   // Send OTP to phone number
   sendOTP: async (phone: string): Promise<any> => {
-    return await api.post('/auth/send-otp', { phone });
+    return await api.post('/api/auth/send-otp', { phone });
   },
 
   // Verify OTP and login
   verifyOTP: async (phone: string, otp: string): Promise<AuthResponse> => {
-    const response = await api.post('/auth/verify-otp', { phone, otp }) as AuthResponse;
+    const response = await api.post('/api/auth/verify-otp', { phone, otp }) as AuthResponse;
     if (response.token) {
       await AsyncStorage.setItem('authToken', response.token);
       await AsyncStorage.setItem('userData', JSON.stringify(response.user));
@@ -133,7 +133,7 @@ export const authService = {
     name: string;
     profilePhoto?: string;
   }): Promise<AuthResponse> => {
-    const response = await api.post('/auth/google', googleData) as AuthResponse;
+    const response = await api.post('/api/auth/google', googleData) as AuthResponse;
     if (response.token) {
       await AsyncStorage.setItem('authToken', response.token);
       await AsyncStorage.setItem('userData', JSON.stringify(response.user));
@@ -143,12 +143,12 @@ export const authService = {
 
   // Get current user profile
   getProfile: async (): Promise<ProfileResponse> => {
-    return await api.get('/auth/me') as ProfileResponse;
+    return await api.get('/api/auth/me') as ProfileResponse;
   },
 
   // Update user profile
   updateProfile: async (data: { name?: string; email?: string }): Promise<ProfileResponse> => {
-    const response = await api.put('/auth/update-profile', data) as ProfileResponse;
+    const response = await api.put('/api/auth/update-profile', data) as ProfileResponse;
     if (response.user) {
       await AsyncStorage.setItem('userData', JSON.stringify(response.user));
     }
@@ -188,12 +188,12 @@ export const restaurantService = {
     limit?: number;
     page?: number;
   }) => {
-    return await api.get('/restaurants', { params });
+    return await api.get('/api/restaurants', { params });
   },
 
   // Get restaurant by ID
   getRestaurantById: async (id: string) => {
-    return await api.get(`/restaurants/${id}`);
+    return await api.get(`/api/restaurants/${id}`);
   },
 
   // Get restaurant menu
@@ -201,7 +201,7 @@ export const restaurantService = {
     category?: string;
     isAvailable?: boolean;
   }) => {
-    return await api.get(`/restaurants/${id}/menu`, { params });
+    return await api.get(`/api/restaurants/${id}/menu`, { params });
   }
 };
 
@@ -212,27 +212,27 @@ export const restaurantService = {
 export const cartService = {
   // Get user's cart
   getCart: async () => {
-    return await api.get('/cart');
+    return await api.get('/api/cart');
   },
 
   // Add item to cart
   addToCart: async (menuItemId: string, quantity: number = 1) => {
-    return await api.post('/cart/items', { menuItemId, quantity });
+    return await api.post('/api/cart/items', { menuItemId, quantity });
   },
 
   // Update cart item quantity
   updateCartItem: async (menuItemId: string, quantity: number) => {
-    return await api.put(`/cart/items/${menuItemId}`, { quantity });
+    return await api.put(`/api/cart/items/${menuItemId}`, { quantity });
   },
 
   // Remove item from cart
   removeFromCart: async (menuItemId: string) => {
-    return await api.delete(`/cart/items/${menuItemId}`);
+    return await api.delete(`/api/cart/items/${menuItemId}`);
   },
 
   // Clear cart
   clearCart: async () => {
-    return await api.delete('/cart');
+    return await api.delete('/api/cart');
   }
 };
 
@@ -255,7 +255,7 @@ export const orderService = {
     }>;
     restaurantName?: string;
   }) => {
-    return await api.post('/orders', data);
+    return await api.post('/api/orders', data);
   },
 
   // Get user's orders
@@ -264,22 +264,22 @@ export const orderService = {
     limit?: number;
     page?: number;
   }) => {
-    return await api.get('/orders', { params });
+    return await api.get('/api/orders', { params });
   },
 
   // Get order by ID
   getOrderById: async (id: string) => {
-    return await api.get(`/orders/${id}`);
+    return await api.get(`/api/orders/${id}`);
   },
 
   // Cancel order
   cancelOrder: async (id: string) => {
-    return await api.put(`/orders/${id}/cancel`);
+    return await api.put(`/api/orders/${id}/cancel`);
   },
 
   // Rate order
   rateOrder: async (id: string, rating: number, review?: string) => {
-    return await api.post(`/orders/${id}/rate`, { rating, review });
+    return await api.post(`/api/orders/${id}/rate`, { rating, review });
   }
 };
 

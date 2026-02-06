@@ -4,32 +4,81 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mockRestaurants, mockCategories, mockOffers } from '../../data/mockData';
+import { mockCategories, mockOffers, mockRestaurants } from '../../data/mockData';
+import { restaurantService } from '../../services/api';
 import { useOrderStore } from '../../store/orderStore';
 import ProgressBar from '../../components/ProgressBar';
+import * as Location from 'expo-location';
+import { haversineDistanceKm, normalizeRestaurant } from '../../utils/geo';
 
 export default function HomeScreen() {
   const router = useRouter();
   const deliveryAddress = useOrderStore(state => state.deliveryAddress);
   const totalItems = useOrderStore(state => state.getTotalItems());
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [restaurants, setRestaurants] = useState<Array<any>>([]);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
-    checkAdminStatus();
-  }, []);
+    let mounted = true;
+    const load = async () => {
+      try {
+        // get user location first (best-effort)
+        let userPos: { latitude: number; longitude: number } | null = null;
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const pos = await Location.getCurrentPositionAsync({ 
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 5000,
+              distanceInterval: 0,
+            });
+            if (pos?.coords) userPos = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+            console.log('Location obtained:', userPos);
+          } else {
+            console.log('Location permission denied');
+          }
+        } catch (e) {
+          console.warn('Location error', e);
+        }
 
-  const checkAdminStatus = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        setIsAdmin(user.role === 'admin');
+        const resp: any = await restaurantService.getRestaurants();
+        const data = resp?.data || resp;
+        const list = Array.isArray(data) ? data : (data?.data || []);
+        const normalized = list.map(normalizeRestaurant);
+        console.log('Fetched restaurants:', normalized.length);
+        console.log('Restaurant names:', normalized.map(r => r.name));
+
+        // compute distances and filter to 150km if we have userPos
+        // Always show restaurants even without location
+        if (userPos && normalized.length > 0) {
+          const withDist = normalized
+            .map(r => {
+              if (r.latitude != null && r.longitude != null) {
+                (r as any).computedDistance = haversineDistanceKm(userPos!.latitude, userPos!.longitude, Number(r.latitude), Number(r.longitude));
+                console.log(`Restaurant ${r.name}: distance = ${(r as any).computedDistance?.toFixed(1)}km`);
+              } else {
+                console.log(`Restaurant ${r.name}: no coordinates`);
+              }
+              return r;
+            })
+            .filter(r => (r as any).computedDistance == null || (r as any).computedDistance <= 1000); // Very generous 1000km limit
+          console.log(`Restaurants after distance filter: ${withDist.length}`);
+          if (mounted) setRestaurants(withDist.length > 0 ? withDist : normalized);
+        } else {
+          console.log('No user position or no restaurants, showing all restaurants:', normalized.length);
+          if (mounted) setRestaurants(normalized);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch restaurants from API, falling back to mock data', err);
+        console.log('Mock restaurants count:', mockRestaurants.length);
+        const mockNormalized = mockRestaurants.map(normalizeRestaurant);
+        if (mounted) setRestaurants(mockNormalized);
       }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-    }
-  };
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -101,14 +150,14 @@ export default function HomeScreen() {
         {/* Restaurants */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Restaurants near you</Text>
-          {mockRestaurants.map(restaurant => (
+          {(restaurants || mockRestaurants).map(restaurant => (
             <TouchableOpacity
               key={restaurant.id}
               style={styles.restaurantCard}
               onPress={() => router.push(`/restaurant/${restaurant.id}`)}
               activeOpacity={0.7}
             >
-              <Image source={restaurant.image} style={styles.restaurantImage} />
+              <Image source={typeof restaurant.image === 'string' ? { uri: restaurant.image } : restaurant.image} style={styles.restaurantImage} />
               <View style={styles.restaurantInfo}>
                 <Text style={styles.restaurantName}>{restaurant.name}</Text>
                 <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
@@ -120,7 +169,7 @@ export default function HomeScreen() {
                   <Text style={styles.metaDivider}>•</Text>
                   <Text style={styles.metaText}>{restaurant.deliveryTime}</Text>
                   <Text style={styles.metaDivider}>•</Text>
-                  <Text style={styles.metaText}>{restaurant.distance}</Text>
+                  <Text style={styles.metaText}>{(restaurant as any).computedDistance ? `${((restaurant as any).computedDistance).toFixed(1)} km` : (restaurant.distance || 'N/A')}</Text>
                 </View>
               </View>
               {!restaurant.isOpen && (
@@ -133,18 +182,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* Admin Add Restaurant Button */}
-      {isAdmin && (
-        <TouchableOpacity 
-          style={[styles.cartButton, styles.adminButton]}
-          onPress={() => router.push('/admin')}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="add-circle" size={24} color="#FFFFFF" />
-          <Text style={styles.cartButtonText}>Add Restaurant</Text>
-          <Ionicons name="restaurant" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
+      {/* Admin UI removed */}
 
       {/* Floating Cart Button */}
       {totalItems > 0 && (

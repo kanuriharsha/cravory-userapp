@@ -111,12 +111,7 @@ export default function ProfileScreen() {
             {userData?.email && (
               <Text style={styles.email}>✉️ {userData.email}</Text>
             )}
-            {userData?.role === 'admin' && (
-              <View style={styles.adminBadge}>
-                <Ionicons name="shield-checkmark" size={14} color="#FFFFFF" />
-                <Text style={styles.adminText}>Admin</Text>
-              </View>
-            )}
+            {/* Admin badge removed */}
           </View>
 
           {/* Stats */}

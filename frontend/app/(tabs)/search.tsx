@@ -4,15 +4,54 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { mockRestaurants } from '../../data/mockData';
+import { restaurantService } from '../../services/api';
+import { useEffect } from 'react';
+import * as Location from 'expo-location';
+import { normalizeRestaurant, haversineDistanceKm } from '../../utils/geo';
 
 export default function SearchScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches] = useState(['Biryani', 'Pizza', 'Burger', 'Chinese']);
+  const [restaurants, setRestaurants] = useState<Array<any>>([]);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  const filteredRestaurants = mockRestaurants.filter(restaurant =>
-    restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (mounted && pos?.coords) setUserCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        }
+
+        const resp: any = await restaurantService.getRestaurants();
+        const data = resp?.data || resp;
+        const list = Array.isArray(data) ? data : (data?.data || []);
+        const normalized = list.map(normalizeRestaurant);
+        if (userCoords) {
+          normalized.forEach(r => {
+            if (r.latitude != null && r.longitude != null) {
+              (r as any).computedDistance = haversineDistanceKm(userCoords.latitude, userCoords.longitude, Number(r.latitude), Number(r.longitude));
+            }
+          });
+          setRestaurants(normalized.filter(r => (r as any).computedDistance == null || (r as any).computedDistance <= 30));
+        } else {
+          setRestaurants(normalized);
+        }
+      } catch (err) {
+        console.warn('Search: failed to fetch restaurants, using mock', err);
+        setRestaurants(mockRestaurants.map(normalizeRestaurant));
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  const filteredRestaurants = (restaurants || mockRestaurants).filter(restaurant =>
+    (restaurant.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (restaurant.cuisine || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -62,7 +101,7 @@ export default function SearchScreen() {
                 style={styles.restaurantCard}
                 onPress={() => router.push(`/restaurant/${restaurant.id}`)}
               >
-                <Image source={restaurant.image} style={styles.restaurantImage} />
+                <Image source={typeof restaurant.image === 'string' ? { uri: restaurant.image } : restaurant.image} style={styles.restaurantImage} />
                 <View style={styles.restaurantInfo}>
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
                   <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
