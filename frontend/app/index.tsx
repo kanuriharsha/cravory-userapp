@@ -50,7 +50,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -60,12 +60,12 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
     letterSpacing: 2,
   },
   tagline: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#111111',
     marginTop: 8,
     opacity: 0.9,
   },

@@ -33,7 +33,8 @@ export default function AdminDashboard() {
     image: '',
     rating: '4.5',
     deliveryTime: '30-40 mins',
-    distance: '2.5 km',
+    latitude: '',   // real-world latitude of the restaurant
+    longitude: '',  // real-world longitude of the restaurant
     isOpen: true
   });
 
@@ -78,19 +79,44 @@ export default function AdminDashboard() {
       Alert.alert('Error', 'Please fill in all required fields (name, cuisine, address, image)');
       return;
     }
+    if (!restaurantForm.latitude || !restaurantForm.longitude) {
+      Alert.alert('Error', 'Latitude and Longitude are required so the restaurant appears in user radius searches.');
+      return;
+    }
+    const lat = parseFloat(restaurantForm.latitude);
+    const lng = parseFloat(restaurantForm.longitude);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      Alert.alert('Error', 'Please enter valid latitude (-90 to 90) and longitude (-180 to 180).');
+      return;
+    }
 
     setLoading(true);
     try {
       const token = await getAuthToken();
-      const response = await axios.post(
-        `${API_URL}/admin/restaurants`,
-        restaurantForm,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+      // Build payload — location.coordinates holds the real-world position.
+      // The backend uses these to compute live Haversine distance per user request.
+      const payload = {
+        name: restaurantForm.name,
+        cuisine: restaurantForm.cuisine,
+        address: restaurantForm.address,
+        phone: restaurantForm.phone,
+        image: restaurantForm.image,
+        rating: parseFloat(restaurantForm.rating) || 4.5,
+        deliveryTime: restaurantForm.deliveryTime,
+        isOpen: restaurantForm.isOpen,
+        status: 'approved',
+        location: {
+          coordinates: {
+            latitude: lat,
+            longitude: lng
           }
         }
+      };
+
+      await axios.post(
+        `${API_URL}/admin/restaurants`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
 
       Alert.alert('Success', 'Restaurant added successfully!');
@@ -102,7 +128,8 @@ export default function AdminDashboard() {
         image: '',
         rating: '4.5',
         deliveryTime: '30-40 mins',
-        distance: '2.5 km',
+        latitude: '',
+        longitude: '',
         isOpen: true
       });
     } catch (error: any) {
@@ -218,12 +245,22 @@ export default function AdminDashboard() {
         onChangeText={(text) => setRestaurantForm({ ...restaurantForm, deliveryTime: text })}
       />
 
-      <Text style={styles.label}>Distance</Text>
+      <Text style={styles.label}>Latitude * (e.g. 16.4403)</Text>
       <TextInput
         style={styles.input}
-        placeholder="2.5 km"
-        value={restaurantForm.distance}
-        onChangeText={(text) => setRestaurantForm({ ...restaurantForm, distance: text })}
+        placeholder="Restaurant latitude — used for 3.5 km radius filter"
+        keyboardType="decimal-pad"
+        value={restaurantForm.latitude}
+        onChangeText={(text) => setRestaurantForm({ ...restaurantForm, latitude: text })}
+      />
+
+      <Text style={styles.label}>Longitude * (e.g. 80.6279)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Restaurant longitude — used for 3.5 km radius filter"
+        keyboardType="decimal-pad"
+        value={restaurantForm.longitude}
+        onChangeText={(text) => setRestaurantForm({ ...restaurantForm, longitude: text })}
       />
 
       <TouchableOpacity
@@ -365,7 +402,7 @@ export default function AdminDashboard() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-          <Ionicons name="person-circle" size={32} color="#FF6B35" />
+          <Ionicons name="person-circle" size={32} color="#FFC107" />
         </TouchableOpacity>
       </View>
 
@@ -374,7 +411,7 @@ export default function AdminDashboard() {
           style={[styles.tab, activeSection === 'restaurants' && styles.tabActive]}
           onPress={() => setActiveSection('restaurants')}
         >
-          <Ionicons name="restaurant" size={20} color={activeSection === 'restaurants' ? '#FF6B35' : '#666'} />
+          <Ionicons name="restaurant" size={20} color={activeSection === 'restaurants' ? '#FFC107' : '#666'} />
           <Text style={[styles.tabText, activeSection === 'restaurants' && styles.tabTextActive]}>
             Restaurants
           </Text>
@@ -384,7 +421,7 @@ export default function AdminDashboard() {
           style={[styles.tab, activeSection === 'menu' && styles.tabActive]}
           onPress={() => setActiveSection('menu')}
         >
-          <Ionicons name="fast-food" size={20} color={activeSection === 'menu' ? '#FF6B35' : '#666'} />
+          <Ionicons name="fast-food" size={20} color={activeSection === 'menu' ? '#FFC107' : '#666'} />
           <Text style={[styles.tabText, activeSection === 'menu' && styles.tabTextActive]}>
             Menu Items
           </Text>
@@ -416,7 +453,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   tabs: {
     flexDirection: 'row',
@@ -433,7 +470,7 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#FF6B35',
+    borderBottomColor: '#FFC107',
   },
   tabText: {
     fontSize: 14,
@@ -441,7 +478,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#FF6B35',
+    color: '#FFC107',
     fontWeight: '600',
   },
   content: {
@@ -479,7 +516,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   restaurantListItemActive: {
-    backgroundColor: '#FFF7F4',
+    backgroundColor: '#FFFDE7',
   },
   restaurantListName: {
     fontSize: 16,
@@ -529,8 +566,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#FFF4F0',
-    borderColor: '#FF6B35',
+    backgroundColor: '#FFFDE7',
+    borderColor: '#FFC107',
   },
   toggleText: {
     fontSize: 16,
@@ -538,7 +575,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   submitButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -548,6 +585,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
   },
 });

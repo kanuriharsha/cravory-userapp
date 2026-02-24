@@ -88,7 +88,7 @@ export default function CartScreen() {
                     style={styles.quantityButton}
                     onPress={() => updateQuantity(item.id, item.quantity - 1)}
                   >
-                    <Ionicons name="remove" size={16} color="#FF6B35" />
+                    <Ionicons name="remove" size={16} color="#FFC107" />
                   </TouchableOpacity>
                   <Text style={styles.quantityText}>{item.quantity}</Text>
                   <TouchableOpacity 
@@ -96,7 +96,7 @@ export default function CartScreen() {
                     style={styles.quantityButton}
                     onPress={() => updateQuantity(item.id, item.quantity + 1)}
                   >
-                    <Ionicons name="add" size={16} color="#FF6B35" />
+                    <Ionicons name="add" size={16} color="#FFC107" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -142,7 +142,7 @@ export default function CartScreen() {
           onPress={handleCheckout}
         >
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          <Ionicons name="arrow-forward" size={20} color="#111111" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   browseButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   browseButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
   },
   restaurantInfo: {
     backgroundColor: '#FFFFFF',
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
     borderRadius: 6,
   },
   quantityButton: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#111111',
     paddingHorizontal: 12,
   },
   itemTotal: {
@@ -332,14 +332,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 14,
     borderRadius: 8,
   },
   checkoutButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
     marginRight: 8,
   },
 });

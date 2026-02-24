@@ -10,12 +10,14 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FF6B35',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#FFC107',
+        tabBarInactiveTintColor: 'rgba(17,17,17,0.6)',
         tabBarStyle: {
-          height: 60,
+          height: 64,
           paddingBottom: 8,
           paddingTop: 8,
+          borderTopWidth: 1,
+          borderTopColor: '#F0F0F0',
         },
       }}
     >
@@ -38,6 +40,37 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="cart"
+        options={{
+          title: 'Cart',
+          tabBarIcon: ({ color, size }) => (
+            <View style={{ position: 'relative' }}>
+              <Ionicons name="cart" size={size} color={color} />
+              {totalItems > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -8,
+                  backgroundColor: '#FF3B30',
+                  borderRadius: 8,
+                  minWidth: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 4,
+                }}>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                  }}>{totalItems}</Text>
+                </View>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',
@@ -55,6 +88,43 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="authentic-originals"
+        options={{
+          title: 'Originals',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <View style={focused ? styles.activeIconWrapper : null}>
+                <Ionicons
+                  name="lock-closed"
+                  size={focused ? 20 : 18}
+                  color={focused ? '#FFC107' : color}
+                />
+              </View>
+            </View>
+          ),
+          tabBarLabel: ({ color, focused }) => (
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: focused ? '700' : '400',
+                color: focused ? '#FFC107' : color,
+                letterSpacing: focused ? 0.3 : 0,
+              }}
+            >
+              Originals
+            </Text>
+          ),
+        }}
+      />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  activeIconWrapper: {
+    backgroundColor: '#FFF8E1',
+    padding: 4,
+    borderRadius: 10,
+  },
+});

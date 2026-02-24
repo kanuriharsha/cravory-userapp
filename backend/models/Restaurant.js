@@ -44,6 +44,19 @@ const restaurantSchema = new mongoose.Schema({
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  // Real geo-coordinates for live distance calculation
+  location: {
+    coordinates: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null }
+    }
+  },
+  // Approval status — only 'approved' restaurants are shown to users
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
   }
 }, {
   timestamps: true

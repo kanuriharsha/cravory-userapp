@@ -93,7 +93,7 @@ export default function LoginScreen() {
           onPress={() => router.push('/otp')}
           activeOpacity={0.8}
         >
-          <Ionicons name="call-outline" size={24} color="#FFFFFF" />
+          <Ionicons name="call-outline" size={24} color="#111111" />
           <Text style={styles.buttonText}>Continue with Mobile Number</Text>
         </TouchableOpacity>
 
@@ -104,10 +104,10 @@ export default function LoginScreen() {
           activeOpacity={0.8}
         >
           {loading ? (
-            <ActivityIndicator color="#FF6B35" />
+            <ActivityIndicator color="#111111" />
           ) : (
             <>
-              <Ionicons name="logo-google" size={24} color="#FF6B35" />
+              <Ionicons name="logo-google" size={24} color="#4285F4" />
               <Text style={[styles.buttonText, styles.googleButtonText]}>Continue with Google</Text>
             </>
           )}
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#111111',
     letterSpacing: 1,
   },
   subtitle: {
@@ -168,28 +168,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
     marginLeft: 12,
   },
   googleButton: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#FF6B35',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   googleButtonText: {
-    color: '#FF6B35',
+    color: '#111111',
   },
   terms: {
     fontSize: 12,
-    color: '#999',
+    color: '#111111',
     textAlign: 'center',
     paddingHorizontal: 24,
     paddingBottom: 24,

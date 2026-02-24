@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   devOtpContainer: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#FFFDE7',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
   },
   devOtpLabel: {
     fontSize: 12,
@@ -259,22 +259,23 @@ const styles = StyleSheet.create({
   devOtpText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
     letterSpacing: 2,
   },
   button: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#FFB299',
+    backgroundColor: '#FFB300',
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
   },
   resendButton: {
     marginTop: 16,
@@ -283,6 +284,6 @@ const styles = StyleSheet.create({
   resendText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
 });

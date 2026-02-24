@@ -179,7 +179,7 @@ export const authService = {
 // ==========================
 
 export const restaurantService = {
-  // Get all restaurants
+  // Get all restaurants — pass lat/lng so the backend filters by 3.5 KM radius
   getRestaurants: async (params?: {
     cuisine?: string;
     minRating?: number;
@@ -187,6 +187,8 @@ export const restaurantService = {
     search?: string;
     limit?: number;
     page?: number;
+    lat?: number;
+    lng?: number;
   }) => {
     return await api.get('/api/restaurants', { params });
   },
@@ -280,6 +282,33 @@ export const orderService = {
   // Rate order
   rateOrder: async (id: string, rating: number, review?: string) => {
     return await api.post(`/api/orders/${id}/rate`, { rating, review });
+  },
+
+  // ── QR Delivery Verification (Part 17 & 18) ─────────────────────────────
+
+  /** Generate a time-limited QR token for delivery verification */
+  generateDeliveryQR: async (id: string): Promise<{
+    success: boolean;
+    data: {
+      qrPayload: string;
+      token: string;
+      timestamp: number;
+      expiry: string;
+      orderId: string;
+      verificationCode: string;
+    };
+  }> => {
+    return await api.post(`/api/orders/${id}/generate-qr`, {}) as any;
+  },
+
+  /** Verify the scanned QR token and mark order as delivered */
+  verifyDeliveryQR: async (id: string, token: string, timestamp: number): Promise<{
+    success: boolean;
+    message: string;
+    data?: { status: string; qrVerifiedAt: string };
+    deliveryVerificationStatus?: string;
+  }> => {
+    return await api.post(`/api/orders/${id}/verify-qr`, { token, timestamp }) as any;
   }
 };
 

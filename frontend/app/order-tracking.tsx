@@ -17,22 +17,19 @@ export default function OrderTrackingScreen() {
     { key: 'confirmed', title: 'Order Confirmed', subtitle: 'Restaurant accepted your order', icon: 'checkmark-circle' },
     { key: 'preparing', title: 'Preparing Food', subtitle: 'Your delicious meal is being prepared', icon: 'restaurant' },
     { key: 'ready', title: 'Food Ready', subtitle: 'Waiting for delivery partner', icon: 'bag-check' },
-    { key: 'picked_up', title: 'Out for Delivery', subtitle: 'Your order is on the way', icon: 'bicycle' },
-    { key: 'delivered', title: 'Delivered', subtitle: 'Enjoy your meal!', icon: 'home' },
+    { key: 'picked_up', title: 'Out for Delivery', subtitle: 'Show QR code to delivery partner to confirm receipt', icon: 'bicycle' },
+    { key: 'delivered', title: 'Delivered', subtitle: 'Enjoy your meal! QR scan verified.', icon: 'home' },
   ];
 
   useEffect(() => {
-    // Simulate order progression
-    const timers: NodeJS.Timeout[] = [];
-    
+    // Simulate order progression — pauses at 'picked_up' for QR verification
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
     timers.push(setTimeout(() => setCurrentStatus('preparing'), 3000));
     timers.push(setTimeout(() => setCurrentStatus('ready'), 8000));
+    // Arrives at 'out for delivery' — waits for QR scan confirmation
     timers.push(setTimeout(() => setCurrentStatus('picked_up'), 12000));
-    timers.push(setTimeout(() => {
-      setCurrentStatus('delivered');
-      // Auto-navigate to rating screen after delivery
-      setTimeout(() => router.replace('/rate-order'), 2000);
-    }, 18000));
+    // NOTE: 'delivered' transition is triggered by QR scan on /qr-delivery screen
 
     return () => timers.forEach(timer => clearTimeout(timer));
   }, []);
@@ -52,7 +49,7 @@ export default function OrderTrackingScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Track Order</Text>
         <TouchableOpacity>
-          <Ionicons name="call" size={24} color="#FF6B35" />
+          <Ionicons name="call" size={24} color="#FFC107" />
         </TouchableOpacity>
       </View>
 
@@ -66,7 +63,7 @@ export default function OrderTrackingScreen() {
 
         {/* Estimated Time */}
         <View style={styles.timeCard}>
-          <Ionicons name="time" size={32} color="#FF6B35" />
+          <Ionicons name="time" size={32} color="#FFC107" />
           <View style={styles.timeInfo}>
             <Text style={styles.timeLabel}>Estimated Delivery</Text>
             <Text style={styles.timeValue}>
@@ -115,6 +112,21 @@ export default function OrderTrackingScreen() {
                       <Text style={styles.currentBadgeText}>In Progress</Text>
                     </View>
                   )}
+                  {/* ── Part 17: QR button at "Out for Delivery" stage ── */}
+                  {isCurrent && status.key === 'picked_up' && (
+                    <TouchableOpacity
+                      style={styles.qrButton}
+                      onPress={() =>
+                        router.push(
+                          `/qr-delivery?orderId=${currentOrderId ?? 'ORDER'}&type=restaurant`
+                        )
+                      }
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="qr-code" size={18} color="#111" style={{ marginRight: 8 }} />
+                      <Text style={styles.qrButtonText}>Show QR Code</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -125,7 +137,7 @@ export default function OrderTrackingScreen() {
         <View style={styles.supportSection}>
           <Text style={styles.supportTitle}>Need Help?</Text>
           <TouchableOpacity style={styles.supportButton}>
-            <Ionicons name="headset" size={20} color="#FF6B35" />
+            <Ionicons name="headset" size={20} color="#FFC107" />
             <Text style={styles.supportButtonText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
@@ -179,13 +191,13 @@ const styles = StyleSheet.create({
   timeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     marginHorizontal: 16,
     marginTop: 16,
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFE0D6',
+    borderColor: '#FFF9C4',
   },
   timeInfo: {
     marginLeft: 16,
@@ -198,7 +210,7 @@ const styles = StyleSheet.create({
   timeValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   timeline: {
     backgroundColor: '#FFFFFF',
@@ -225,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   statusIconCurrent: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
   },
   timelineLine: {
     width: 2,
@@ -259,13 +271,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     borderRadius: 12,
   },
   currentBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
+  },
+  // ── Part 17: QR delivery button
+  qrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFC107',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 12,
+    alignSelf: 'flex-start',
+  },
+  qrButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111111',
   },
   supportSection: {
     backgroundColor: '#FFFFFF',
@@ -283,16 +311,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FFE0D6',
+    borderColor: '#FFF9C4',
   },
   supportButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
     marginLeft: 8,
   },
 });

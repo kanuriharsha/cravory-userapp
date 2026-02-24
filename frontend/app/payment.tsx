@@ -51,7 +51,7 @@ export default function PaymentScreen() {
         restaurantName: i.restaurantName
       }));
 
-      const resp = await orderService.createOrder({
+      const resp: any = await orderService.createOrder({
         deliveryAddress,
         paymentMethod: selectedMethod,
         items: itemsPayload,
@@ -111,7 +111,7 @@ export default function PaymentScreen() {
                 <Ionicons 
                   name={method.icon as any} 
                   size={24} 
-                  color={selectedMethod === method.id ? '#FF6B35' : '#666'} 
+                  color={selectedMethod === method.id ? '#FFC107' : '#666'} 
                 />
               </View>
               <View style={styles.methodInfo}>
@@ -131,7 +131,7 @@ export default function PaymentScreen() {
         {/* Offers */}
         <View style={styles.offerSection}>
           <View style={styles.offerHeader}>
-            <Ionicons name="pricetag" size={20} color="#FF6B35" />
+            <Ionicons name="pricetag" size={20} color="#FFC107" />
             <Text style={styles.offerTitle}>Apply Offers</Text>
           </View>
           <TouchableOpacity style={styles.offerCard}>
@@ -151,7 +151,7 @@ export default function PaymentScreen() {
           disabled={!selectedMethod || loading}
           onPress={handlePayment}
         >
-          <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
+          <Ionicons name="shield-checkmark" size={20} color="#111111" />
           <Text style={styles.payButtonText}>{loading ? 'Processing...' : `Pay ₹${totalAmount} Securely`}</Text>
         </TouchableOpacity>
         <Text style={styles.secureText}>100% secure payments powered by industry standards</Text>
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   methodsSection: {
     backgroundColor: '#FFFFFF',
@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
     borderColor: '#F9F9F9',
   },
   methodCardSelected: {
-    backgroundColor: '#FFF4F0',
-    borderColor: '#FF6B35',
+    backgroundColor: '#FFFDE7',
+    borderColor: '#FFC107',
   },
   methodIcon: {
     width: 40,
@@ -251,13 +251,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioOuterSelected: {
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
   },
   offerSection: {
     backgroundColor: '#FFFFFF',
@@ -299,18 +299,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 14,
     borderRadius: 8,
     marginBottom: 8,
   },
   payButtonDisabled: {
-    backgroundColor: '#FFB399',
+    backgroundColor: '#FFB300',
+    opacity: 0.6,
   },
   payButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
     marginLeft: 8,
   },
   secureText: {

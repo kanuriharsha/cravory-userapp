@@ -92,7 +92,7 @@ export default function RateOrderScreen() {
 
         {/* Reorder Button */}
         <TouchableOpacity style={styles.reorderButton}>
-          <Ionicons name="repeat" size={20} color="#FF6B35" />
+          <Ionicons name="repeat" size={20} color="#FFC107" />
           <Text style={styles.reorderText}>Reorder</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -223,15 +223,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 20,
     paddingVertical: 14,
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFE0D6',
+    borderColor: '#FFF9C4',
   },
   reorderText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
     marginLeft: 8,
   },
   footer: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F0F0F0',
   },
   submitButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
   },
   skipText: {
     fontSize: 14,

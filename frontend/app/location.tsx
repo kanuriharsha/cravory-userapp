@@ -81,7 +81,7 @@ export default function LocationScreen() {
         />
         
         <View style={styles.iconContainer}>
-          <Ionicons name="location" size={64} color="#FF6B35" />
+          <Ionicons name="location" size={64} color="#FFC107" />
         </View>
 
         <Text style={styles.title}>Enable Location Access</Text>
@@ -91,15 +91,15 @@ export default function LocationScreen() {
 
         <View style={styles.features}>
           <View style={styles.feature}>
-            <Ionicons name="restaurant-outline" size={24} color="#FF6B35" />
+            <Ionicons name="restaurant-outline" size={24} color="#FFC107" />
             <Text style={styles.featureText}>Find nearby restaurants</Text>
           </View>
           <View style={styles.feature}>
-            <Ionicons name="time-outline" size={24} color="#FF6B35" />
+            <Ionicons name="time-outline" size={24} color="#FFC107" />
             <Text style={styles.featureText}>Accurate delivery time</Text>
           </View>
           <View style={styles.feature}>
-            <Ionicons name="navigate-outline" size={24} color="#FF6B35" />
+            <Ionicons name="navigate-outline" size={24} color="#FFC107" />
             <Text style={styles.featureText}>Track your order live</Text>
           </View>
         </View>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   allowButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   allowButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -202,6 +202,6 @@ const styles = StyleSheet.create({
   manualButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
 });

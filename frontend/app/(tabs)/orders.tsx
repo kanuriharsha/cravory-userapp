@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { orderService } from '../../services/api';
+import { useD2CStore, D2C_MILESTONES } from '../../store/d2cStore';
 
 interface Order {
   _id: string;
@@ -25,11 +26,16 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
+  // D2C order state
+  const d2cOrder = useD2CStore((s) => s.d2cOrder);
+  const isD2CActive = useD2CStore((s) => s.isD2COrderActive)();
+  const currentMilestone = d2cOrder ? D2C_MILESTONES[d2cOrder.milestoneIndex] : null;
+
   // Fetch orders from backend
   const fetchOrders = async () => {
     try {
       setError('');
-      const response = await orderService.getOrders({ limit: 50 });
+      const response: any = await orderService.getOrders({ limit: 50 });
       if (response.success && response.data) {
         setOrders(response.data);
       }
@@ -70,7 +76,7 @@ export default function OrdersScreen() {
       case 'confirmed': return '#2196F3';
       case 'preparing': return '#FF9800';
       case 'out_for_delivery': return '#9C27B0';
-      default: return '#FF6B35';
+      default: return '#FFC107';
     }
   };
 
@@ -86,15 +92,65 @@ export default function OrdersScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color="#FFC107" />
         </View>
       ) : (
         <ScrollView 
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FFC107']} />
           }
         >
+          {/* ── PINNED D2C TRACKING CARD (Part 13) ── */}
+          {d2cOrder && (
+            <TouchableOpacity
+              style={[
+                styles.d2cPinnedCard,
+                isD2CActive ? styles.d2cPinnedCardActive : styles.d2cPinnedCardDelivered,
+              ]}
+              onPress={() => router.push('/d2c-tracking')}
+              activeOpacity={0.88}
+            >
+              <View style={styles.d2cPinnedHeader}>
+                <View style={styles.d2cPinnedIconWrap}>
+                  <Text style={styles.d2cPinnedIcon}>📦</Text>
+                </View>
+                <View style={styles.d2cPinnedTextCol}>
+                  <Text style={styles.d2cPinnedTitle}>Authentic Originals Order</Text>
+                  <Text style={styles.d2cPinnedStatus}>
+                    {currentMilestone?.label ?? 'Order Placed'}
+                  </Text>
+                </View>
+                <View style={styles.d2cPinnedArrow}>
+                  <Ionicons name="chevron-forward" size={20} color="#FFC107" />
+                </View>
+              </View>
+              <Text style={styles.d2cPinnedSub}>
+                {isD2CActive
+                  ? `Your order is being shipped from ${d2cOrder.product.region} (3–4 days delivery).`
+                  : 'Your Authentic Originals order has been delivered!'}
+              </Text>
+              <View style={styles.d2cMilestoneMini}>
+                {D2C_MILESTONES.map((m, i) => (
+                  <View
+                    key={m.key}
+                    style={[
+                      styles.d2cDot,
+                      i <= d2cOrder.milestoneIndex && styles.d2cDotDone,
+                      i === d2cOrder.milestoneIndex && styles.d2cDotCurrent,
+                    ]}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity
+                style={styles.d2cTrackBtn}
+                onPress={() => router.push('/d2c-tracking')}
+              >
+                <Text style={styles.d2cTrackBtnText}>Track Order</Text>
+                <Ionicons name="arrow-forward" size={14} color="#111111" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          )}
           {error ? (
             <View style={styles.errorContainer}>
               <Ionicons name="alert-circle-outline" size={60} color="#F44336" />
@@ -221,20 +277,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
     alignItems: 'center',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   reorderButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     borderWidth: 0,
   },
   reorderButtonText: {
-    color: '#FFFFFF',
+    color: '#111111',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -254,7 +310,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   browseButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -262,7 +318,7 @@ const styles = StyleSheet.create({
   browseButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
   },
   loadingContainer: {
     flex: 1,
@@ -282,7 +338,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   retryButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -291,6 +347,60 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111111',
   },
+
+  // ── Pinned D2C card (Part 13) ────────────────────────────────────────────
+  d2cPinnedCard: {
+    margin: 16,
+    marginBottom: 0,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#FFC107',
+    shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  d2cPinnedCardActive: { borderColor: '#FFC107' },
+  d2cPinnedCardDelivered: { borderColor: '#4CAF50' },
+  d2cPinnedHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  d2cPinnedIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFDE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  d2cPinnedIcon: { fontSize: 22 },
+  d2cPinnedTextCol: { flex: 1 },
+  d2cPinnedTitle: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
+  d2cPinnedStatus: { fontSize: 12, color: '#FFC107', fontWeight: '600', marginTop: 2 },
+  d2cPinnedArrow: { paddingLeft: 8 },
+  d2cPinnedSub: { fontSize: 13, color: '#555', lineHeight: 18, marginBottom: 10 },
+  d2cMilestoneMini: { flexDirection: 'row', gap: 5, marginBottom: 12 },
+  d2cDot: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E0E0E0',
+  },
+  d2cDotDone: { backgroundColor: '#4CAF50' },
+  d2cDotCurrent: { backgroundColor: '#FFC107' },
+  d2cTrackBtn: {
+    flexDirection: 'row',
+    alignSelf: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: '#FFC107',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  d2cTrackBtnText: { fontSize: 13, fontWeight: '700', color: '#111111' },
 });

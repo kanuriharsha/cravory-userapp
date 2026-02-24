@@ -40,7 +40,7 @@ export default function CheckoutScreen() {
         {/* Delivery Address */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="location" size={24} color="#FF6B35" />
+            <Ionicons name="location" size={24} color="#FFC107" />
             <Text style={styles.sectionTitle}>Delivery Address</Text>
           </View>
           <View style={styles.addressCard}>
@@ -57,7 +57,7 @@ export default function CheckoutScreen() {
         {/* Order Items */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="restaurant" size={24} color="#FF6B35" />
+            <Ionicons name="restaurant" size={24} color="#FFC107" />
             <Text style={styles.sectionTitle}>Order from {cart[0]?.restaurantName}</Text>
           </View>
           <View style={styles.itemsList}>
@@ -74,7 +74,7 @@ export default function CheckoutScreen() {
         {/* Delivery Instructions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="document-text" size={24} color="#FF6B35" />
+            <Ionicons name="document-text" size={24} color="#FFC107" />
             <Text style={styles.sectionTitle}>Delivery Instructions</Text>
           </View>
           <TouchableOpacity style={styles.instructionCard}>
@@ -86,7 +86,7 @@ export default function CheckoutScreen() {
         {/* Bill Summary */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="receipt" size={24} color="#FF6B35" />
+            <Ionicons name="receipt" size={24} color="#FFC107" />
             <Text style={styles.sectionTitle}>Bill Summary</Text>
           </View>
           <View style={styles.billCard}>
@@ -125,7 +125,7 @@ export default function CheckoutScreen() {
           onPress={handleProceedToPayment}
         >
           <Text style={styles.paymentButtonText}>Proceed to Payment</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          <Ionicons name="arrow-forward" size={20} color="#111111" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   changeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   itemsList: {
     backgroundColor: '#F9F9F9',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   itemQuantity: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
     width: 30,
   },
   itemName: {
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   footer: {
     backgroundColor: '#FFFFFF',
@@ -290,14 +290,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 14,
     borderRadius: 8,
   },
   paymentButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
     marginRight: 8,
   },
 });

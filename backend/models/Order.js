@@ -64,6 +64,24 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryInstructions: {
     type: String
+  },
+  // ── QR Delivery Verification (Part 17 & 18) ─────────────────────────────
+  qrToken: {
+    type: String,
+    default: null
+  },
+  qrTokenExpiry: {
+    type: Date,
+    default: null
+  },
+  qrVerifiedAt: {
+    type: Date,
+    default: null
+  },
+  deliveryVerificationStatus: {
+    type: String,
+    enum: ['pending', 'qr_generated', 'verified', 'attempt_pending'],
+    default: 'pending'
   }
 }, {
   timestamps: true

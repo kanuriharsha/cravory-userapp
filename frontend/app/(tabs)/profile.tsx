@@ -42,7 +42,7 @@ export default function ProfileScreen() {
       }
 
       // Fetch order count
-      const ordersResponse = await orderService.getOrders({ limit: 1 });
+      const ordersResponse: any = await orderService.getOrders({ limit: 1 });
       setOrderCount(ordersResponse.total || 0);
     } catch (error: any) {
       console.error('Error loading profile:', error);
@@ -88,7 +88,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color="#FFC107" />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       ) : (
@@ -99,7 +99,7 @@ export default function ProfileScreen() {
               {userData?.profilePhoto && typeof userData.profilePhoto === 'string' && userData.profilePhoto.startsWith('http') ? (
                 <Image source={{ uri: userData.profilePhoto }} style={styles.avatar} />
               ) : (
-                <Ionicons name="person" size={40} color="#FF6B35" />
+                <Ionicons name="person" size={40} color="#FFC107" />
               )}
             </View>
             <Text style={styles.name}>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   adminBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   adminText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: '#111111',
     fontWeight: '600',
     marginLeft: 4,
   },
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
     marginBottom: 4,
   },
   statLabel: {

@@ -66,6 +66,7 @@ const seedData = async () => {
     ]);
 
     // Create restaurants
+    // Coordinates are placed near Vijayawada (16.4403923, 80.6279616) — all within 3.5 km
     console.log('🏪 Creating restaurants...');
     const restaurants = await Restaurant.create([
       {
@@ -73,60 +74,65 @@ const seedData = async () => {
         description: 'Authentic Italian pizzas with fresh ingredients',
         image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
         cuisine: 'Italian',
-        address: '123 Main St, Mumbai',
+        address: 'Benz Circle, Vijayawada',
         phone: '+919876543210',
         rating: 4.5,
         deliveryTime: '30-40 min',
-        distance: '2.5 km',
-        isOpen: true
+        isOpen: true,
+        status: 'approved',
+        location: { coordinates: { latitude: 16.4494, longitude: 80.6330 } }  // ~1.1 km
       },
       {
         name: 'Burger House',
         description: 'Juicy burgers and crispy fries',
         image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
         cuisine: 'American',
-        address: '456 Park Ave, Delhi',
+        address: 'Governorpet, Vijayawada',
         phone: '+919876543211',
         rating: 4.3,
         deliveryTime: '25-35 min',
-        distance: '1.8 km',
-        isOpen: true
+        isOpen: true,
+        status: 'approved',
+        location: { coordinates: { latitude: 16.4254, longitude: 80.6380 } }  // ~2.0 km
       },
       {
         name: 'Spice Kitchen',
         description: 'Traditional Indian cuisine with modern twist',
         image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe',
         cuisine: 'Indian',
-        address: '789 Lake Road, Bangalore',
+        address: 'Patamata, Vijayawada',
         phone: '+919876543212',
         rating: 4.7,
         deliveryTime: '35-45 min',
-        distance: '3.2 km',
-        isOpen: true
+        isOpen: true,
+        status: 'approved',
+        location: { coordinates: { latitude: 16.4604, longitude: 80.6130 } }  // ~2.7 km
       },
       {
         name: 'Wok Express',
         description: 'Fast and fresh Chinese food',
         image: 'https://images.unsplash.com/photo-1526318896980-cf78c088247c',
         cuisine: 'Chinese',
-        address: '321 Ring Road, Pune',
+        address: 'Siddhartha Nagar, Vijayawada',
         phone: '+919876543213',
         rating: 4.4,
         deliveryTime: '30-40 min',
-        distance: '2.0 km',
-        isOpen: true
+        isOpen: true,
+        status: 'approved',
+        location: { coordinates: { latitude: 16.4154, longitude: 80.6480 } }  // ~3.4 km
       },
       {
         name: 'Sweet Treats',
         description: 'Delicious desserts and beverages',
         image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777',
         cuisine: 'Dessert',
-        address: '654 Beach Road, Chennai',
+        address: 'One Town, Vijayawada',
         phone: '+919876543214',
         rating: 4.6,
         deliveryTime: '20-30 min',
-        distance: '1.5 km',
-        isOpen: true
+        isOpen: true,
+        status: 'approved',
+        location: { coordinates: { latitude: 16.4434, longitude: 80.6230 } }  // ~0.6 km
       }
     ]);
 

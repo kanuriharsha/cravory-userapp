@@ -77,7 +77,7 @@ export default function OrderConfirmationScreen() {
             onPress={handleTrackOrder}
           >
             <Text style={styles.trackButtonText}>Track Order</Text>
-            <Ionicons name="location" size={20} color="#FFFFFF" />
+            <Ionicons name="location" size={20} color="#111111" />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   trackButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
     marginRight: 8,
   },
   homeButton: {
@@ -176,6 +176,6 @@ const styles = StyleSheet.create({
   homeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
 });

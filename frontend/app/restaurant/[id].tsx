@@ -30,13 +30,13 @@ export default function RestaurantScreen() {
         const mData = respM?.data || respM;
         if (mounted) {
           setRestaurant(rData || (mockRestaurants.find(r => r.id === id) ?? null));
-          setMenuItems(Array.isArray(mData) ? mData : (mData?.data || mockMenuItems[id as string] || []));
+          setMenuItems(Array.isArray(mData) ? mData : (mData?.data || (mockMenuItems as any)[id as string] || []));
         }
       } catch (err) {
         console.warn('Failed to load restaurant/menu from API, falling back to mock', err);
         if (mounted) {
           setRestaurant(mockRestaurants.find(r => r.id === id) || null);
-          setMenuItems(mockMenuItems[id as string] || []);
+          setMenuItems((mockMenuItems as any)[id as string] || []);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -124,7 +124,7 @@ export default function RestaurantScreen() {
 
         {/* Offer Banner */}
         <View style={styles.offerBanner}>
-          <Ionicons name="pricetag" size={20} color="#FF6B35" />
+          <Ionicons name="pricetag" size={20} color="#FFC107" />
           <Text style={styles.offerText}>50% off up to ₹100 on orders above ₹199</Text>
         </View>
 
@@ -166,14 +166,14 @@ export default function RestaurantScreen() {
                           updateQuantity(itemId, quantity - 1);
                         }}
                       >
-                        <Ionicons name="remove" size={16} color="#FF6B35" />
+                        <Ionicons name="remove" size={16} color="#FFC107" />
                       </TouchableOpacity>
                       <Text style={styles.quantityText}>{quantity}</Text>
                       <TouchableOpacity 
                         style={styles.quantityButton}
                         onPress={() => handleAddToCart(item)}
                       >
-                        <Ionicons name="add" size={16} color="#FF6B35" />
+                        <Ionicons name="add" size={16} color="#FFC107" />
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -202,7 +202,7 @@ export default function RestaurantScreen() {
             <Text style={styles.cartTotal}>₹{useOrderStore.getState().getTotalAmount()}</Text>
           </View>
           <Text style={styles.viewCartText}>View Cart</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          <Ionicons name="arrow-forward" size={20} color="#111111" />
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -281,10 +281,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     padding: 12,
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FFE0D6',
+    borderColor: '#FFF9C4',
     marginBottom: 16,
   },
   offerText: {
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   addButton: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 6,
@@ -373,14 +373,14 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#111111',
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#111111',
     paddingHorizontal: 12,
   },
   viewCartButton: {
@@ -402,13 +402,13 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FFC107',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
   },
@@ -417,18 +417,18 @@ const styles = StyleSheet.create({
   },
   cartItems: {
     fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
+    color: '#111111',
+    opacity: 0.7,
   },
   cartTotal: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
   },
   viewCartText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#111111',
     marginRight: 8,
   },
 });

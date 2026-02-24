@@ -1,8 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const { protect } = require('../middleware/auth');
+
+// ── QR Delivery Verification Helpers (Part 17 & 18) ──────────────────────
+const QR_SECRET = process.env.QR_HMAC_SECRET || 'cravory_qr_delivery_secret_2024';
+const QR_VALIDITY_MS = 5 * 60 * 1000; // 5 minutes
+
+function generateQRToken(orderId) {
+  const timestamp = Date.now();
+  const data = `${orderId}:${timestamp}`;
+  const token = crypto.createHmac('sha256', QR_SECRET).update(data).digest('hex');
+  return { token, timestamp, expiry: new Date(timestamp + QR_VALIDITY_MS) };
+}
+
+function verifyQRToken(orderId, token, timestamp) {
+  // Expired?
+  if (Date.now() - timestamp > QR_VALIDITY_MS) return false;
+  const data = `${orderId}:${timestamp}`;
+  const expected = crypto.createHmac('sha256', QR_SECRET).update(data).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(token, 'hex'));
+}
 
 // @route   POST /api/orders
 // @desc    Create new order from cart
@@ -263,6 +283,114 @@ router.post('/:id/rate', protect, async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: order
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/orders/:id/generate-qr
+// @desc    Generate a time-limited QR verification token for delivery
+// @access  Private
+router.post('/:id/generate-qr', protect, async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.userId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Allow QR generation only when out for delivery
+    if (!['out_for_delivery', 'confirmed', 'preparing'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'QR code can only be generated when order is out for delivery'
+      });
+    }
+
+    const { token, timestamp, expiry } = generateQRToken(order._id.toString());
+
+    // Persist token on order
+    order.qrToken = token;
+    order.qrTokenExpiry = expiry;
+    order.deliveryVerificationStatus = 'qr_generated';
+    await order.save();
+
+    // QR payload: pipe-delimited string the scanner / app reads
+    const qrPayload = `CRAVORY_DELIVERY|${order._id}|${token}|${timestamp}`;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        qrPayload,
+        token,
+        timestamp,
+        expiry: expiry.toISOString(),
+        orderId: order._id,
+        // Short 6-char human-readable code for manual entry
+        verificationCode: token.slice(0, 3).toUpperCase() + '-' + token.slice(-3).toUpperCase()
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/orders/:id/verify-qr
+// @desc    Verify delivery QR scan and mark order as delivered
+// @access  Private
+router.post('/:id/verify-qr', protect, async (req, res, next) => {
+  try {
+    const { token, timestamp } = req.body;
+
+    if (!token || !timestamp) {
+      return res.status(400).json({ success: false, message: 'Token and timestamp are required' });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.userId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Check stored token matches and is valid
+    let isValid = false;
+    try {
+      isValid = order.qrToken === token && verifyQRToken(order._id.toString(), token, Number(timestamp));
+    } catch (e) {
+      isValid = false;
+    }
+
+    if (!isValid) {
+      // Mark as attempt pending if QR is expired or invalid
+      order.deliveryVerificationStatus = 'attempt_pending';
+      await order.save();
+      return res.status(400).json({
+        success: false,
+        message: 'QR code is invalid or expired. Status set to Delivery Attempt Pending Verification.',
+        deliveryVerificationStatus: 'attempt_pending'
+      });
+    }
+
+    // Valid scan — mark as delivered
+    order.status = 'delivered';
+    order.qrVerifiedAt = new Date();
+    order.deliveryVerificationStatus = 'verified';
+    order.qrToken = null; // invalidate after use
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Delivery confirmed via QR scan!',
+      data: { status: 'delivered', qrVerifiedAt: order.qrVerifiedAt }
     });
   } catch (error) {
     next(error);

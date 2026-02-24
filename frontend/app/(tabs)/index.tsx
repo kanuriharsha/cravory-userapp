@@ -4,76 +4,71 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mockCategories, mockOffers, mockRestaurants } from '../../data/mockData';
+import { mockCategories, mockOffers } from '../../data/mockData';
 import { restaurantService } from '../../services/api';
 import { useOrderStore } from '../../store/orderStore';
+import { useD2CStore, D2C_MILESTONES } from '../../store/d2cStore';
 import ProgressBar from '../../components/ProgressBar';
 import * as Location from 'expo-location';
-import { haversineDistanceKm, normalizeRestaurant } from '../../utils/geo';
+import { normalizeRestaurant } from '../../utils/geo';
 
 export default function HomeScreen() {
   const router = useRouter();
   const deliveryAddress = useOrderStore(state => state.deliveryAddress);
-  const totalItems = useOrderStore(state => state.getTotalItems());
+
+  // D2C active order (Part 16)
+  const d2cOrder = useD2CStore((s) => s.d2cOrder);
+  const isD2COrderActive = useD2CStore((s) => s.isD2COrderActive)();
+  const d2cMilestone = d2cOrder ? D2C_MILESTONES[d2cOrder.milestoneIndex] : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [restaurants, setRestaurants] = useState<Array<any>>([]);
-  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
+      // Get user location first (required for the 3.5 km radius filter on the backend)
+      let userPos: { latitude: number; longitude: number } | null = null;
       try {
-        // get user location first (best-effort)
-        let userPos: { latitude: number; longitude: number } | null = null;
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({ 
-              accuracy: Location.Accuracy.Balanced,
-              timeInterval: 5000,
-              distanceInterval: 0,
-            });
-            if (pos?.coords) userPos = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 5000,
+            distanceInterval: 0,
+          });
+          if (pos?.coords) {
+            userPos = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
             console.log('Location obtained:', userPos);
-          } else {
-            console.log('Location permission denied');
           }
-        } catch (e) {
-          console.warn('Location error', e);
+        } else {
+          console.log('Location permission denied — cannot show nearby restaurants');
+        }
+      } catch (e) {
+        console.warn('Location error:', e);
+      }
+
+      try {
+        // Send live coordinates to the backend. The backend computes real-time
+        // Haversine distance and returns only approved restaurants within 3.5 km.
+        const apiParams: any = {};
+        if (userPos) {
+          apiParams.lat = userPos.latitude;
+          apiParams.lng = userPos.longitude;
         }
 
-        const resp: any = await restaurantService.getRestaurants();
+        const resp: any = await restaurantService.getRestaurants(apiParams);
         const data = resp?.data || resp;
         const list = Array.isArray(data) ? data : (data?.data || []);
-        const normalized = list.map(normalizeRestaurant);
-        console.log('Fetched restaurants:', normalized.length);
-        console.log('Restaurant names:', normalized.map(r => r.name));
 
-        // compute distances and filter to 150km if we have userPos
-        // Always show restaurants even without location
-        if (userPos && normalized.length > 0) {
-          const withDist = normalized
-            .map(r => {
-              if (r.latitude != null && r.longitude != null) {
-                (r as any).computedDistance = haversineDistanceKm(userPos!.latitude, userPos!.longitude, Number(r.latitude), Number(r.longitude));
-                console.log(`Restaurant ${r.name}: distance = ${(r as any).computedDistance?.toFixed(1)}km`);
-              } else {
-                console.log(`Restaurant ${r.name}: no coordinates`);
-              }
-              return r;
-            })
-            .filter(r => (r as any).computedDistance == null || (r as any).computedDistance <= 1000); // Very generous 1000km limit
-          console.log(`Restaurants after distance filter: ${withDist.length}`);
-          if (mounted) setRestaurants(withDist.length > 0 ? withDist : normalized);
-        } else {
-          console.log('No user position or no restaurants, showing all restaurants:', normalized.length);
-          if (mounted) setRestaurants(normalized);
-        }
+        // Normalize field names for the UI; computedDistance is already set by the backend
+        const normalized = list.map(normalizeRestaurant);
+        console.log(`[Nearby] ${normalized.length} restaurants within 3.5 km from backend`);
+        if (mounted) setRestaurants(normalized);
       } catch (err) {
-        console.warn('Failed to fetch restaurants from API, falling back to mock data', err);
-        console.log('Mock restaurants count:', mockRestaurants.length);
-        const mockNormalized = mockRestaurants.map(normalizeRestaurant);
-        if (mounted) setRestaurants(mockNormalized);
+        console.error('[Nearby] Failed to fetch restaurants from API:', err);
+        // Do NOT fall back to mock data — show an empty list so the user knows
+        // no real restaurants were found rather than showing stale/fake data.
+        if (mounted) setRestaurants([]);
       }
     };
     load();
@@ -87,7 +82,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.locationContainer}>
-          <Ionicons name="location" size={20} color="#FF6B35" />
+          <Ionicons name="location" size={20} color="#FFC107" />
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>Deliver to</Text>
             <Text style={styles.locationAddress} numberOfLines={1}>
@@ -99,6 +94,26 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* ── D2C Mini Tracking Banner (Part 16) ── */}
+        {d2cOrder && isD2COrderActive && (
+          <TouchableOpacity
+            style={styles.d2cMiniBanner}
+            onPress={() => router.push('/d2c-tracking')}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.d2cMiniBannerIcon}>📦</Text>
+            <View style={styles.d2cMiniBannerText}>
+              <Text style={styles.d2cMiniBannerTitle}>Authentic Originals Order In Transit</Text>
+              <Text style={styles.d2cMiniBannerSub}>
+                {d2cMilestone?.label} • {d2cOrder.product.region} → {d2cOrder.address.city}
+              </Text>
+            </View>
+            <View style={styles.d2cMiniBannerBtn}>
+              <Text style={styles.d2cMiniBannerBtnText}>Track</Text>
+              <Ionicons name="arrow-forward" size={12} color="#111111" />
+            </View>
+          </TouchableOpacity>
+        )}
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -110,6 +125,38 @@ export default function HomeScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
+
+        {/* ── Authentic Originals Ad Card ── */}
+        <TouchableOpacity
+          style={styles.adCard}
+          activeOpacity={0.88}
+          onPress={() => router.push('/(tabs)/authentic-originals')}
+        >
+          <View style={styles.adCardInner}>
+            {/* Left content */}
+            <View style={styles.adCardContent}>
+              <View style={styles.adPremiumBadge}>
+                <Ionicons name="lock-closed" size={10} color="#B8860B" />
+                <Text style={styles.adPremiumBadgeText}>🔒 Premium · Coming Soon</Text>
+              </View>
+              <Text style={styles.adCardTitle}>Authentic Originals</Text>
+              <Text style={styles.adCardSubtitle}>
+                Authentic regional foods delivered from their exact place of origin.
+              </Text>
+              <Text style={styles.adCardTagline}>Curated · Verified · Origin Sourced</Text>
+              <View style={styles.adCTAButton}>
+                <Text style={styles.adCTAText}>Explore Originals (Preview)</Text>
+                <Ionicons name="arrow-forward" size={13} color="#111111" />
+              </View>
+            </View>
+            {/* Right icon */}
+            <View style={styles.adCardIconWrapper}>
+              <View style={styles.adCardIconCircle}>
+                <Ionicons name="lock-closed" size={28} color="#FFFFFF" />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         {/* Offers */}
         <ScrollView 
@@ -150,7 +197,22 @@ export default function HomeScreen() {
         {/* Restaurants */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Restaurants near you</Text>
-          {(restaurants || mockRestaurants).map(restaurant => (
+          {restaurants.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="location-outline" size={52} color="#DDD" />
+              <Text style={styles.emptyTitle}>No restaurants available{'\n'}in your region</Text>
+              <Text style={styles.emptySubText}>No approved restaurants found within 3.5 km of your location.</Text>
+              <TouchableOpacity
+                style={styles.exploreButton}
+                onPress={() => router.push('/(tabs)/search')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="search" size={16} color="#111111" />
+                <Text style={styles.exploreButtonText}>Explore</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {restaurants.map(restaurant => (
             <TouchableOpacity
               key={restaurant.id}
               style={styles.restaurantCard}
@@ -181,23 +243,6 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
-
-      {/* Admin UI removed */}
-
-      {/* Floating Cart Button */}
-      {totalItems > 0 && (
-        <TouchableOpacity 
-          style={styles.cartButton}
-          onPress={() => router.push('/cart')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>{totalItems}</Text>
-          </View>
-          <Text style={styles.cartButtonText}>View Cart</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
     </SafeAreaView>
   );
 }
@@ -255,15 +300,15 @@ const styles = StyleSheet.create({
     width: 280,
     padding: 16,
     marginRight: 12,
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFE0D6',
+    borderColor: '#FFF9C4',
   },
   offerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
     marginBottom: 4,
   },
   offerSubtitle: {
@@ -278,13 +323,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: '#FFC107',
     borderStyle: 'dashed',
   },
   offerCodeText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#FFC107',
   },
   section: {
     marginBottom: 24,
@@ -307,7 +352,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FFF4F0',
+    backgroundColor: '#FFFDE7',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -331,6 +376,40 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     overflow: 'hidden',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 48,
+    gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  exploreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    backgroundColor: '#FFC107',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+  },
+  exploreButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111111',
   },
   restaurantImage: {
     width: '100%',
@@ -387,46 +466,121 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  cartButton: {
-    position: 'absolute',
-    bottom: 80,
-    left: 16,
-    right: 16,
+
+  // ── D2C Mini Banner (Part 16) ──────────────────────────────────────────────
+  d2cMiniBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF6B35',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: '#FFFDE7',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#FFC107',
+    gap: 10,
   },
-  cartBadge: {
-    backgroundColor: '#FFFFFF',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
+  d2cMiniBannerIcon: { fontSize: 24 },
+  d2cMiniBannerText: { flex: 1 },
+  d2cMiniBannerTitle: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  d2cMiniBannerSub: { fontSize: 11, color: '#666', marginTop: 2 },
+  d2cMiniBannerBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
+    backgroundColor: '#FFC107',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
   },
-  cartBadgeText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FF6B35',
+  d2cMiniBannerBtnText: { fontSize: 12, fontWeight: '700', color: '#111111' },
+
+  // ── Authentic Originals Ad Card ──────────────────────────────────────────
+  adCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 18,
+    backgroundColor: '#FFC107',
+    shadowColor: '#FFB300',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.30,
+    shadowRadius: 14,
+    elevation: 7,
+    overflow: 'hidden',
   },
-  cartButtonText: {
+  adCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  adCardContent: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    marginRight: 12,
   },
-  adminButton: {
-    backgroundColor: '#10B981',
-    bottom: 160,
+  adPremiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  adPremiumBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#B8860B',
+    letterSpacing: 0.4,
+  },
+  adCardTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  adCardSubtitle: {
+    fontSize: 12,
+    color: '#3A3A3A',
+    lineHeight: 17,
+    marginBottom: 6,
+  },
+  adCardTagline: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#5D4037',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  adCTAButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  adCTAText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111111',
+  },
+  adCardIconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adCardIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
