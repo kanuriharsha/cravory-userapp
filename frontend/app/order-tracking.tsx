@@ -1,44 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOrderStore } from '../store/orderStore';
+import { orderService } from '../services/api';
 
-type OrderStatus = 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'delivered';
+type StageKey = 'orderConfirmed' | 'preparingFood' | 'foodReady' | 'outForDelivery' | 'delivered';
+
+interface TrackingStages {
+  orderConfirmed: 'pending' | 'completed';
+  preparingFood: 'pending' | 'completed';
+  foodReady: 'pending' | 'completed';
+  outForDelivery: 'pending' | 'completed';
+  delivered: 'pending' | 'completed';
+}
+
+const STAGE_KEYS: StageKey[] = ['orderConfirmed', 'preparingFood', 'foodReady', 'outForDelivery', 'delivered'];
+
+const DEFAULT_STAGES: TrackingStages = {
+  orderConfirmed: 'pending',
+  preparingFood: 'pending',
+  foodReady: 'pending',
+  outForDelivery: 'pending',
+  delivered: 'pending',
+};
 
 export default function OrderTrackingScreen() {
   const router = useRouter();
   const currentOrderId = useOrderStore(state => state.currentOrderId);
   const cart = useOrderStore(state => state.cart);
-  const [currentStatus, setCurrentStatus] = useState<OrderStatus>('confirmed');
 
-  const statuses: { key: OrderStatus; title: string; subtitle: string; icon: string }[] = [
-    { key: 'confirmed', title: 'Order Confirmed', subtitle: 'Restaurant accepted your order', icon: 'checkmark-circle' },
-    { key: 'preparing', title: 'Preparing Food', subtitle: 'Your delicious meal is being prepared', icon: 'restaurant' },
-    { key: 'ready', title: 'Food Ready', subtitle: 'Waiting for delivery partner', icon: 'bag-check' },
-    { key: 'picked_up', title: 'Out for Delivery', subtitle: 'Show QR code to delivery partner to confirm receipt', icon: 'bicycle' },
-    { key: 'delivered', title: 'Delivered', subtitle: 'Enjoy your meal! QR scan verified.', icon: 'home' },
+  const [trackingStages, setTrackingStages] = useState<TrackingStages>(DEFAULT_STAGES);
+
+  const statuses: { key: StageKey; title: string; subtitle: string; icon: string }[] = [
+    { key: 'orderConfirmed',  title: 'Order Confirmed',   subtitle: 'Restaurant accepted your order',                         icon: 'checkmark-circle' },
+    { key: 'preparingFood',   title: 'Preparing Food',    subtitle: 'Your delicious meal is being prepared',                  icon: 'restaurant' },
+    { key: 'foodReady',       title: 'Food Ready',        subtitle: 'Waiting for delivery partner',                           icon: 'bag-check' },
+    { key: 'outForDelivery',  title: 'Out for Delivery',  subtitle: 'Show QR code to delivery partner to confirm receipt',    icon: 'bicycle' },
+    { key: 'delivered',       title: 'Delivered',         subtitle: 'Enjoy your meal! QR scan verified.',                     icon: 'home' },
   ];
 
-  useEffect(() => {
-    // Simulate order progression — pauses at 'picked_up' for QR verification
-    const timers: ReturnType<typeof setTimeout>[] = [];
-
-    timers.push(setTimeout(() => setCurrentStatus('preparing'), 3000));
-    timers.push(setTimeout(() => setCurrentStatus('ready'), 8000));
-    // Arrives at 'out for delivery' — waits for QR scan confirmation
-    timers.push(setTimeout(() => setCurrentStatus('picked_up'), 12000));
-    // NOTE: 'delivered' transition is triggered by QR scan on /qr-delivery screen
-
-    return () => timers.forEach(timer => clearTimeout(timer));
-  }, []);
-
-  const getStatusIndex = (status: OrderStatus) => {
-    return statuses.findIndex(s => s.key === status);
+  /** Index of the last completed stage (-1 if none) */
+  const getCurrentIndex = (stages: TrackingStages): number => {
+    let last = -1;
+    STAGE_KEYS.forEach((key, i) => {
+      if (stages[key] === 'completed') last = i;
+    });
+    return last;
   };
 
-  const currentIndex = getStatusIndex(currentStatus);
+  // ── Poll order from backend every 5 seconds to get live tracking stages ──
+  useEffect(() => {
+    if (!currentOrderId) return;
+
+    const fetchOrder = async () => {
+      try {
+        const resp: any = await orderService.getOrderById(currentOrderId);
+        if (resp?.success && resp?.data?.trackingStages) {
+          setTrackingStages(resp.data.trackingStages as TrackingStages);
+        }
+      } catch {
+        // silently ignore poll errors (offline / backend down)
+      }
+    };
+
+    fetchOrder(); // immediate first fetch
+    const interval = setInterval(fetchOrder, 5000);
+    return () => clearInterval(interval);
+  }, [currentOrderId]);
+
+  // NOTE: This app does NOT auto-advance tracking stages. Stages are
+  // controlled by the restaurant application. We only poll the order
+  // to display whatever the restaurant has set in `trackingStages`.
+
+  const currentIndex = getCurrentIndex(trackingStages);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -67,7 +103,7 @@ export default function OrderTrackingScreen() {
           <View style={styles.timeInfo}>
             <Text style={styles.timeLabel}>Estimated Delivery</Text>
             <Text style={styles.timeValue}>
-              {currentStatus === 'delivered' ? 'Delivered' : '25-30 mins'}
+              {trackingStages.delivered === 'completed' ? 'Delivered' : '25-30 mins'}
             </Text>
           </View>
         </View>
@@ -75,9 +111,12 @@ export default function OrderTrackingScreen() {
         {/* Order Status Timeline */}
         <View style={styles.timeline}>
           {statuses.map((status, index) => {
-            const isCompleted = index <= currentIndex;
+            const isCompleted = trackingStages[status.key] === 'completed';
             const isCurrent = index === currentIndex;
-            
+            // line below is green if the NEXT stage is also completed
+            const isLineCompleted = index < statuses.length - 1 &&
+              trackingStages[statuses[index + 1].key] === 'completed';
+
             return (
               <View key={status.key} style={styles.timelineItem}>
                 <View style={styles.timelineLeft}>
@@ -86,16 +125,16 @@ export default function OrderTrackingScreen() {
                     isCompleted && styles.statusIconCompleted,
                     isCurrent && styles.statusIconCurrent,
                   ]}>
-                    <Ionicons 
-                      name={status.icon as any} 
-                      size={24} 
-                      color={isCompleted ? '#FFFFFF' : '#999'} 
+                    <Ionicons
+                      name={status.icon as any}
+                      size={24}
+                      color={isCompleted ? '#FFFFFF' : '#999'}
                     />
                   </View>
                   {index < statuses.length - 1 && (
                     <View style={[
                       styles.timelineLine,
-                      isCompleted && styles.timelineLineCompleted
+                      isLineCompleted && styles.timelineLineCompleted
                     ]} />
                   )}
                 </View>
@@ -112,8 +151,8 @@ export default function OrderTrackingScreen() {
                       <Text style={styles.currentBadgeText}>In Progress</Text>
                     </View>
                   )}
-                  {/* ── Part 17: QR button at "Out for Delivery" stage ── */}
-                  {isCurrent && status.key === 'picked_up' && (
+                  {/* ── QR button at "Out for Delivery" stage ── */}
+                  {isCurrent && status.key === 'outForDelivery' && (
                     <TouchableOpacity
                       style={styles.qrButton}
                       onPress={() =>

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useOrderStore } from '../store/orderStore';
+import { useOrderStore, DeliveryAddress } from '../store/orderStore';
 
 export default function LocationScreen() {
   const router = useRouter();
@@ -42,21 +42,31 @@ export default function LocationScreen() {
       });
 
       // Format address
-      let formattedAddress = '';
+      let deliveryAddr: DeliveryAddress;
       if (address) {
-        const parts = [];
-        if (address.street) parts.push(address.street);
-        if (address.name && address.name !== address.street) parts.push(address.name);
-        if (address.city) parts.push(address.city);
-        if (address.region) parts.push(address.region);
-        if (address.postalCode) parts.push(address.postalCode);
-        
-        formattedAddress = parts.join(', ') || 'Current Location';
+        const line1Parts = [];
+        if (address.street) line1Parts.push(address.street);
+        if (address.name && address.name !== address.street) line1Parts.push(address.name);
+        deliveryAddr = {
+          label: 'Home',
+          addressLine1: line1Parts.join(', ') || 'Current Location',
+          addressLine2: '',
+          city: address.city || '',
+          state: address.region || '',
+          pincode: address.postalCode || '',
+        };
       } else {
-        formattedAddress = `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`;
+        deliveryAddr = {
+          label: 'Home',
+          addressLine1: `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`,
+          addressLine2: '',
+          city: '',
+          state: '',
+          pincode: '',
+        };
       }
 
-      setDeliveryAddress(formattedAddress);
+      setDeliveryAddress(deliveryAddr);
 
       // Continue to main tabs
       router.replace('/(tabs)');
@@ -120,8 +130,15 @@ export default function LocationScreen() {
         <TouchableOpacity 
           style={styles.manualButton}
           onPress={async () => {
-            setDeliveryAddress('MG Road, Bangalore, Karnataka 560001');
-            
+            setDeliveryAddress({
+              label: 'Home',
+              addressLine1: 'MG Road',
+              addressLine2: '',
+              city: 'Bangalore',
+              state: 'Karnataka',
+              pincode: '560001',
+            });
+
             // Continue to main tabs
             router.replace('/(tabs)');
           }}

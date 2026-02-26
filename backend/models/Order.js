@@ -14,6 +14,15 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Customer contact details captured at order time
+  customerName: {
+    type: String,
+    trim: true
+  },
+  customerPhone: {
+    type: String,
+    trim: true
+  },
   items: [{
     menuItemId: {
       type: mongoose.Schema.Types.Mixed,
@@ -41,14 +50,16 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   deliveryAddress: {
-    label: String,
-    addressLine1: String,
-    addressLine2: String,
+    label: String,          // Home | Work | Other
+    addressLine1: String,   // House / Flat / Building
+    addressLine2: String,   // Street / Area / Locality
     city: String,
     state: String,
     pincode: String,
     latitude: Number,
-    longitude: Number
+    longitude: Number,
+    // Convenience: full formatted string built by backend
+    fullAddress: String
   },
   status: {
     type: String,
@@ -65,6 +76,36 @@ const orderSchema = new mongoose.Schema({
   deliveryInstructions: {
     type: String
   },
+  // ── Order Tracking Stages ────────────────────────────────────────────────
+  // Each stage is 'pending' until that milestone is reached, then 'completed'
+  trackingStages: {
+    orderConfirmed: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending'
+    },
+    preparingFood: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending'
+    },
+    foodReady: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending'
+    },
+    outForDelivery: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending'
+    },
+    delivered: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending'
+    }
+  },
+
   // ── QR Delivery Verification (Part 17 & 18) ─────────────────────────────
   qrToken: {
     type: String,

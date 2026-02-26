@@ -12,6 +12,16 @@ import ProgressBar from '../../components/ProgressBar';
 import * as Location from 'expo-location';
 import { normalizeRestaurant } from '../../utils/geo';
 
+function getAddressDisplay(deliveryAddress: any): string {
+  if (!deliveryAddress) return 'Select location';
+  if (typeof deliveryAddress === 'string') return deliveryAddress;
+  return (
+    [deliveryAddress.city, deliveryAddress.state].filter(Boolean).join(', ') ||
+    deliveryAddress.addressLine1 ||
+    'Select location'
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const deliveryAddress = useOrderStore(state => state.deliveryAddress);
@@ -86,7 +96,7 @@ export default function HomeScreen() {
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>Deliver to</Text>
             <Text style={styles.locationAddress} numberOfLines={1}>
-              {deliveryAddress}
+              {getAddressDisplay(deliveryAddress)}
             </Text>
           </View>
           <Ionicons name="chevron-down" size={20} color="#666" />

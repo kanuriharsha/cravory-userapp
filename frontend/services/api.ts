@@ -245,6 +245,8 @@ export const cartService = {
 export const orderService = {
   // Create order from cart
   createOrder: async (data: {
+    customerName?: string;
+    customerPhone?: string;
     deliveryAddress: any;
     paymentMethod: string;
     items?: Array<{
@@ -269,9 +271,14 @@ export const orderService = {
     return await api.get('/api/orders', { params });
   },
 
-  // Get order by ID
+  /** Get order by ID */
   getOrderById: async (id: string) => {
     return await api.get(`/api/orders/${id}`);
+  },
+
+  /** Mark a tracking stage as completed in the DB */
+  updateTrackingStage: async (id: string, stage: string): Promise<any> => {
+    return await api.put(`/api/orders/${id}/tracking-stage`, { stage });
   },
 
   // Cancel order

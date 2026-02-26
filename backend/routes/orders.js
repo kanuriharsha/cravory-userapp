@@ -29,7 +29,15 @@ function verifyQRToken(orderId, token, timestamp) {
 // @access  Private
 router.post('/', protect, async (req, res, next) => {
   try {
-    const { deliveryAddress, paymentMethod } = req.body;
+    const { deliveryAddress, paymentMethod, customerName, customerPhone } = req.body;
+
+    // Build a human-readable full address string from the structured address object
+    const buildFullAddress = (addr) => {
+      if (!addr) return '';
+      if (typeof addr === 'string') return addr;
+      return [addr.addressLine1, addr.addressLine2, addr.city, addr.state, addr.pincode]
+        .filter(Boolean).join(', ');
+    };
 
     // Helper to normalize image value to string URI
     const normalizeImage = (img) => {
@@ -98,18 +106,26 @@ router.post('/', protect, async (req, res, next) => {
 
     // Create order
     const restaurantNameFromBody = req.body.restaurantName || (req.body.items && req.body.items[0]?.restaurantName) || null;
+
+    // Merge fullAddress into deliveryAddress object
+    const deliveryAddressObj = typeof deliveryAddress === 'object' && deliveryAddress !== null
+      ? { ...deliveryAddress, fullAddress: buildFullAddress(deliveryAddress) }
+      : { fullAddress: deliveryAddress || '' };
+
     const order = await Order.create({
       userId: req.user.id,
       restaurantId: cart?.restaurantId || null,
       restaurantName: (cart && cart.restaurantId && cart.restaurantId.name) || restaurantNameFromBody || null,
+      customerName: customerName || null,
+      customerPhone: customerPhone || null,
       items: orderItems,
       subtotal,
       deliveryFee,
       tax,
       total: totalAmount,
-      deliveryAddress,
+      deliveryAddress: deliveryAddressObj,
       paymentMethod,
-      status: 'pending'
+      status: 'pending',
     });
 
     // Clear cart after order (only if cart existed on server)
@@ -289,6 +305,51 @@ router.post('/:id/rate', protect, async (req, res, next) => {
   }
 });
 
+// @route   PUT /api/orders/:id/tracking-stage
+// @desc    Mark a specific tracking stage as completed
+// @access  Private
+router.put('/:id/tracking-stage', protect, async (req, res, next) => {
+  try {
+    const { stage } = req.body;
+    const validStages = ['orderConfirmed', 'preparingFood', 'foodReady', 'outForDelivery', 'delivered'];
+
+    if (!validStages.includes(stage)) {
+      return res.status(400).json({ success: false, message: 'Invalid stage. Must be one of: ' + validStages.join(', ') });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (order.userId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Mark specified stage completed
+    order.trackingStages[stage] = 'completed';
+
+    // Keep top-level status in sync
+    const statusMap = {
+      orderConfirmed: 'confirmed',
+      preparingFood: 'preparing',
+      foodReady: 'preparing',
+      outForDelivery: 'out_for_delivery',
+      delivered: 'delivered'
+    };
+    if (statusMap[stage]) order.status = statusMap[stage];
+
+    // If delivered via this route, also record QR as verified
+    if (stage === 'delivered' && !order.qrVerifiedAt) {
+      order.deliveryVerificationStatus = 'verified';
+      order.qrVerifiedAt = new Date();
+    }
+
+    await order.save();
+
+    res.json({ success: true, data: order.trackingStages });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @route   POST /api/orders/:id/generate-qr
 // @desc    Generate a time-limited QR verification token for delivery
 // @access  Private
@@ -380,7 +441,8 @@ router.post('/:id/verify-qr', protect, async (req, res, next) => {
       });
     }
 
-    // Valid scan — mark as delivered
+    // Valid scan — mark as delivered (do not mutate trackingStages here;
+    // restaurant app controls trackingStages). Keep delivery verification metadata.
     order.status = 'delivered';
     order.qrVerifiedAt = new Date();
     order.deliveryVerificationStatus = 'verified';
